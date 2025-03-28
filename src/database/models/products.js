@@ -26,6 +26,11 @@ const productSchema = new mongoose.Schema({
             alt: { type: String }
         }
     ],
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'category',
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
