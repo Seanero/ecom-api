@@ -4,7 +4,10 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 require("dotenv").config();
 
+require('./database/index');
+
 const mainRoutes = require("./routes/index");
+const productRoutes = require("./routes/product");
 
 const app = express();
 
@@ -14,6 +17,7 @@ app.use(cors());
 
 
 app.use("/", mainRoutes);
+app.use("/product", productRoutes)
 
 const startServer = async () => {
     app.listen(process.env.WEB_PORT, () => {
