@@ -3,17 +3,25 @@ const Joi = require("joi");
 const {sign, verify} = require("jsonwebtoken");
 const router = express.Router();
 
+const verifyToken = require("../middlewares/verifyToken");
+
 const userDB = require("../database/models/user")
 
 const invoiceAddressSchema = Joi.object({
-    line1: Joi.string().required(),
-    line2: Joi.string().optional().allow(''),
-    postalCode: Joi.string().required(),
-    city: Joi.string().required(),
-    stateOrDepartment: Joi.string().optional(),
-    country: Joi.string().required()
+    line1: Joi.string()
+        .required(),
+    line2: Joi.string()
+        .optional()
+        .allow(''),
+    postalCode: Joi.string()
+        .required(),
+    city: Joi.string()
+        .required(),
+    stateOrDepartment: Joi.string()
+        .optional(),
+    country: Joi.string()
+        .required()
 });
-
 
 const userSchema = Joi.object({
     firstname: Joi.string()
@@ -41,13 +49,13 @@ router.get('/', (req, res) => {
     res.json({response: "API is running"});
 })
 
-router.get('/me', async (req, res) => {
+router.get('/me', verifyToken, async (req, res) => {
 
     if(!req.cookies.token) return res.status(401).json({code: "Invalid Token"});
 
     const tokenContent = verify(req.cookies.token, process.env.SECRET_KEY);
 
-    console.log(tokenContent)
+    console.log(req.user);
 
     userDB.findOne({email: tokenContent.email})
         .then(user => {
@@ -56,23 +64,39 @@ router.get('/me', async (req, res) => {
         .catch(err => res.status(401).json({code: "TOKEN_INVALID"}));
 })
 
-router.post('/edit', async (req, res) => {
-    const { user, edit } = req.body;
+router.post('/edit', verifyToken, async (req, res) => {
+    const {user, edit} = req.body;
 
     if (!user || !edit) {
-        return res.status(400).json({ code: 'INVALID_BODY', message: 'user ou edit manquant' });
+        return res.status(400).json({code: 'INVALID_BODY', message: 'user ou edit manquant'});
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const isSelf = req.user.email === user;
+
+    if (!isAdmin && !isSelf) {
+        return res.status(403).json({code: 'FORBIDDEN', message: 'Tu ne peux modifier que ton propre compte'});
+    }
+
+    console.log(req.user)
+
+    if(!isAdmin && edit.role){
+        return res.status(403).json({code: 'FORBIDDEN', message: 'Tu ne peux modifier ton propre rôle'});
     }
 
     try {
         const updatedUser = await userDB.findOneAndUpdate(
-            { email: user },       // filtre : utilisateur à modifier
-            { $set: edit },        // modifications à appliquer
-            { new: true }          // renvoie le user mis à jour
+            { email: user },
+            { $set: edit },
+            { new: true }
         );
 
         if (!updatedUser) {
             return res.status(404).json({ code: 'USER_NOT_FOUND' });
         }
+
+        res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
+
 
         res.status(200).json({
             code: 'USER_UPDATED',
@@ -85,7 +109,9 @@ router.post('/edit', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ code: 'SERVER_ERROR' });
-    }})
+    }
+
+})
 
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
@@ -97,7 +123,6 @@ router.post("/login", async (req, res) => {
     const userPayload = {
         id: getUser._id,
         email: getUser.email,
-        role: getUser.role,
     };
 
     const token = sign(userPayload, process.env.SECRET_KEY, { expiresIn: '1h' });
@@ -130,7 +155,7 @@ router.post('/register', async (req, res) => {
         });
 });
 
-router.post("/logout", (req, res) => {
+router.post("/logout", verifyToken, (req, res) => {
     res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
     res.status(200).json({ code: "LOGOUT_SUCCESS" });
 });

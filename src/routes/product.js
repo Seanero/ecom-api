@@ -2,6 +2,9 @@ const express = require('express');
 const Joi = require('joi');
 const router = express.Router();
 
+const verifyToken = require("../middlewares/verifyToken");
+const verifyAdmin = require("../middlewares/verifyAdmin");
+
 const productSchema = Joi.object({
     name: Joi.string().min(3).max(255).required(),
     description: Joi.string().min(10).required(),
@@ -39,7 +42,7 @@ router.get('/getAll', async (req, res) => {
         .catch(err => res.status(500).json({ response: 'Erreur serveur.', error: err }));
 })
 
-router.post('/create', async (req, res) => {
+router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     console.log(req.body);
     const { error, value } = productSchema.validate(req.body);
 
@@ -59,7 +62,7 @@ router.post('/create', async (req, res) => {
         });
 })
 
-router.post('/delete', async (req, res) => {
+router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
     const { error, value } = productID.validate(req.body);
 
     if(error) {

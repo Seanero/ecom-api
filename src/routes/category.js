@@ -2,6 +2,9 @@ const express = require('express');
 const Joi = require('joi');
 const router = express.Router();
 
+const verifyToken = require("../middlewares/verifyToken");
+const verifyAdmin = require("../middlewares/verifyAdmin");
+
 const categorySchema = Joi.object({
     name: Joi.string().min(3).max(255).required(),
     slug: Joi.string()
@@ -26,7 +29,7 @@ router.get('/getAll', async (req, res) => {
         .catch(err => res.status(500).json({ response: 'Erreur serveur.', error: err }));
 })
 
-router.post('/create', async (req, res) => {
+router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     console.log(req.body);
     const { error, value } = categorySchema.validate(req.body);
     console.log(value)
@@ -47,7 +50,7 @@ router.post('/create', async (req, res) => {
         });
 })
 
-router.post('/delete', async (req, res) => {
+router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
     console.log(req.body);
     const { error, value } = deleteId.validate(req.body);
 
@@ -55,7 +58,7 @@ router.post('/delete', async (req, res) => {
         return res.status(400).json({ error: error.details[0].message });
     }
 
-    productDB.deleteOne({ _id: value.id })
+    categoryDB.deleteOne({ _id: value.id })
         .then(() => {
             res.status(204);
         })
