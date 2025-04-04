@@ -18,6 +18,10 @@ const productSchema = Joi.object({
 
 const productDB = require('../database/models/products');
 
+const productID = Joi.object({
+    id: Joi.string().required(),
+})
+
 router.get('/', (req, res) => {
     res.json({response: "API is running"});
 })
@@ -56,8 +60,7 @@ router.post('/create', async (req, res) => {
 })
 
 router.post('/delete', async (req, res) => {
-    console.log(req.body);
-    const { error, value } = deleteId.validate(req.body);
+    const { error, value } = productID.validate(req.body);
 
     if(error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -65,7 +68,8 @@ router.post('/delete', async (req, res) => {
 
     productDB.deleteOne({ _id: value.id })
         .then(() => {
-            res.status(204);
+            console.log("Oui")
+            res.status(204).send();
         })
         .catch((err) => {
             res.status(500).json({error: err});
