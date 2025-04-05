@@ -2,9 +2,6 @@ const express = require('express');
 const Joi = require('joi');
 const router = express.Router();
 
-const verifyToken = require("../middlewares/verifyToken");
-const verifyAdmin = require("../middlewares/verifyAdmin");
-
 const productSchema = Joi.object({
     name: Joi.string().min(3).max(255).required(),
     description: Joi.string().min(10).required(),

@@ -95,8 +95,23 @@ router.post('/edit', verifyToken, async (req, res) => {
             return res.status(404).json({ code: 'USER_NOT_FOUND' });
         }
 
-        res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
+        if (isSelf && edit.email && edit.email !== req.user.email) {
+            res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
 
+            const payload = {
+                id: updatedUser._id,
+                email: updatedUser.email,
+            };
+
+            const newToken = sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' });
+
+            res.cookie('token', newToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 3600000
+            });
+        }
 
         res.status(200).json({
             code: 'USER_UPDATED',
@@ -155,7 +170,7 @@ router.post('/register', async (req, res) => {
         });
 });
 
-router.post("/logout", verifyToken, (req, res) => {
+router.get("/logout", verifyToken, (req, res) => {
     res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
     res.status(200).json({ code: "LOGOUT_SUCCESS" });
 });
