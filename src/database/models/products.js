@@ -20,12 +20,9 @@ const productSchema = new mongoose.Schema({
         required: true,
         min: 0
     },
-    images: [
-        {
-            url: { type: String, required: true },
-            alt: { type: String }
-        }
-    ],
+    images: {
+        data: { type: String, required: true },
+    },
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'category',

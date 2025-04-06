@@ -29,6 +29,13 @@ router.get('/getAll', async (req, res) => {
         .catch(err => res.status(500).json({ response: 'Erreur serveur.', error: err }));
 })
 
+router.get('/get/:id', async (req, res) => {
+    const id = req.params.id;
+    categoryDB.findById(id)
+        .then(product => res.status(200).json(product))
+        .catch(err => res.status(404).json({response: "Not Found", error: err}))
+})
+
 router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     console.log(req.body);
     const { error, value } = categorySchema.validate(req.body);

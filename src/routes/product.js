@@ -8,12 +8,7 @@ const productSchema = Joi.object({
     price: Joi.number().min(0).required(),
     stock: Joi.number().min(0).required(),
     category: Joi.string().required(),
-    images: Joi.array().items(
-        Joi.object({
-            url: Joi.string().uri().required(),
-            alt: Joi.string().allow('').optional()
-        })
-    ).min(1).required()
+    images: Joi.string().min(1).required()
 });
 
 const productDB = require('../database/models/products');
