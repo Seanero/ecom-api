@@ -15,6 +15,8 @@ const productSchema = Joi.object({
 });
 
 const productDB = require('../database/models/products');
+const categoryDB = require('../database/models/category');
+
 
 const productID = Joi.object({
     id: Joi.string().required(),
@@ -38,24 +40,28 @@ router.get('/getAll', async (req, res) => {
 })
 
 router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
-    console.log(req.body);
-    const { error, value } = productSchema.validate(req.body);
+    try {
+        console.log(req.body);
+        const { error, value } = productSchema.validate(req.body);
 
-    if(error) {
-        return res.status(400).json({ error: error.details[0].message });
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
+        const category = await categoryDB.findById(req.body.category);
+        if (!category) {
+            return res.status(404).json({ code: "CATEGORY_NOT_FOUND" });
+        }
+
+        const newProduct = new productDB(value);
+        await newProduct.save();
+
+        return res.status(201).json({ response: "Product created" });
+
+    } catch (err) {
+        return res.status(500).json({ error: err.message || err });
     }
-
-    const newProduct = new productDB(value);
-    await newProduct.save()
-        .then(() => {
-            res.status(201).json({response: "Product created"});
-            console.log("Produit enregistré !");
-        })
-        .catch((err) => {
-            res.status(500).json({error: err});
-            console.error("Erreur :", err);
-        });
-})
+});
 
 router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
     const { error, value } = productID.validate(req.body);
@@ -66,12 +72,10 @@ router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
 
     productDB.deleteOne({ _id: value.id })
         .then(() => {
-            console.log("Oui")
             res.status(204).send();
         })
         .catch((err) => {
             res.status(500).json({error: err});
-            console.error("Error :", err);
         })
 
 })
