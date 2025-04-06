@@ -28,10 +28,20 @@ router.get('/', (req, res) => {
 
 router.get('/get/:id', async (req, res) => {
     const id = req.params.id;
-    productDB.findById(id)
-        .then(product => res.status(200).json(product))
-        .catch(err => res.status(404).json({response: "Not Found", error: err}))
-})
+
+    try {
+        const product = await productDB.findById(id);
+        if (!product) {
+            return res.status(404).json({ response: "NOT_FOUND" });
+        }
+        return res.status(200).json(product);
+    } catch (err) {
+        if (err.name === 'CastError') {
+            return res.status(400).json({ response: "Invalid ID format" });
+        }
+        return res.status(500).json({ response: "Server error", error: err.message });
+    }
+});
 
 router.get('/getAll', async (req, res) => {
     productDB.find({})

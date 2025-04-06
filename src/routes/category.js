@@ -18,6 +18,7 @@ const deleteId = Joi.object({
 })
 
 const categoryDB = require('../database/models/category');
+const productDB = require("../database/models/products");
 
 router.get('/', (req, res) => {
     res.json({response: "API is running"});
@@ -25,16 +26,26 @@ router.get('/', (req, res) => {
 
 router.get('/getAll', async (req, res) => {
     categoryDB.find({})
-        .then(products => res.json(products))
+        .then(category => res.json(category))
         .catch(err => res.status(500).json({ response: 'Erreur serveur.', error: err }));
 })
 
 router.get('/get/:id', async (req, res) => {
     const id = req.params.id;
-    categoryDB.findById(id)
-        .then(product => res.status(200).json(product))
-        .catch(err => res.status(404).json({response: "Not Found", error: err}))
-})
+
+    try {
+        const category = await categoryDB.findById(id);
+        if (!category) {
+            return res.status(404).json({ response: "NOT_FOUND" });
+        }
+        return res.status(200).json(category);
+    } catch (err) {
+        if (err.name === 'CastError') {
+            return res.status(400).json({ response: "Invalid ID format" });
+        }
+        return res.status(500).json({ response: "Server error", error: err.message });
+    }
+});
 
 router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     console.log(req.body);
