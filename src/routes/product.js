@@ -51,7 +51,6 @@ router.get('/getAll', async (req, res) => {
 
 router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        console.log(req.body);
         const { error, value } = productSchema.validate(req.body);
 
         if (error) {

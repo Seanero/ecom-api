@@ -48,9 +48,7 @@ router.get('/get/:id', async (req, res) => {
 });
 
 router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
-    console.log(req.body);
     const { error, value } = categorySchema.validate(req.body);
-    console.log(value)
 
     if(error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -60,7 +58,6 @@ router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
     await newCategory.save()
         .then(() => {
             res.status(201).json({response: "Category created"});
-            console.log("Categoriée enregistré !");
         })
         .catch((err) => {
             res.status(500).json({error: err});
@@ -69,7 +66,6 @@ router.post('/create', verifyToken, verifyAdmin, async (req, res) => {
 })
 
 router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
-    console.log(req.body);
     const { error, value } = deleteId.validate(req.body);
 
     if(error) {
