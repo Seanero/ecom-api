@@ -17,8 +17,13 @@ const app = express();
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors());
 
+app.use(cors({
+    origin: 'http://localhost:5173', // Remplacez par l'URL exacte de votre frontend
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use("/", mainRoutes);
 app.use("/product", productRoutes);
