@@ -6,12 +6,10 @@ const categorySchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    slug: {
+    description: {
         type: String,
         required: true,
         trim: true,
-        lowercase: true,
-        match: /^[a-z0-9\-]+$/
     },
     createdAt: {
         type: Date,

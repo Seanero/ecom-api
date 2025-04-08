@@ -94,7 +94,7 @@ router.post('/edit', verifyToken, async (req, res) => {
         }
 
         if (isSelf && edit.email && edit.email !== req.user.email) {
-            res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
+            res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'lax' });
 
             const payload = {
                 id: updatedUser._id,
@@ -106,7 +106,7 @@ router.post('/edit', verifyToken, async (req, res) => {
             res.cookie('token', newToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'lax',
                 maxAge: 3600000
             });
         }
@@ -247,6 +247,56 @@ router.post("/login", async (req, res) => {
     }
 });
 
+router.post("/loginApp", async (req, res) => {
+    const { email, password } = req.body;
+
+    console.log(email, password);
+
+    try {
+        const user = await userDB.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ code: "LOGIN_INCORRECT" });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(404).json({ code: "LOGIN_INCORRECT" });
+        }
+
+        const userPayload = {
+            id: user._id,
+            email: user.email,
+        };
+
+        // Générer le token JWT
+        const token = sign(userPayload, process.env.SECRET_KEY, { expiresIn: '1h' });
+
+        // Mettre à jour la date de dernière connexion
+        user.lastLogin = new Date();
+        await user.save();
+
+        // Répondre avec succès + token
+        res.status(200).json({
+            code: "LOGIN_SUCCESS",
+            token,
+            user: {
+                email: user.email,
+                lastLogin: user.lastLogin
+            }
+        });
+
+    } catch (error) {
+        console.error("Erreur de connexion:", error);
+        res.status(500).json({
+            code: "SERVER_ERROR",
+            message: "Une erreur est survenue lors de la connexion"
+        });
+    }
+});
+
+
 router.post('/register', async (req, res) => {
     try {
         const { error, value } = userSchema.validate(req.body);
@@ -294,7 +344,7 @@ router.post('/register', async (req, res) => {
 });
 
 router.get("/logout", verifyToken, (req, res) => {
-    res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'strict' });
+    res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'lax' });
     res.status(200).json({ code: "LOGOUT_SUCCESS" });
 });
 

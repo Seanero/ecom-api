@@ -7,10 +7,7 @@ const verifyAdmin = require("../middlewares/verifyAdmin");
 
 const categorySchema = Joi.object({
     name: Joi.string().min(3).max(255).required(),
-    slug: Joi.string()
-        .lowercase()
-        .pattern(/^[a-z0-9\-]+$/)
-        .required()
+    description: Joi.string().min(3).max(500).required()
 });
 
 const deleteId = Joi.object({
@@ -74,7 +71,7 @@ router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
 
     categoryDB.deleteOne({ _id: value.id })
         .then(() => {
-            res.status(204);
+            res.status(204).send();
         })
         .catch((err) => {
             res.status(500).json({error: err});
