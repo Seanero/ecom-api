@@ -86,7 +86,47 @@ router.post('/delete', verifyToken, verifyAdmin, async (req, res) => {
         .catch((err) => {
             res.status(500).json({error: err});
         })
-
 })
+
+router.put('/update/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        // Validation des données reçues
+        const { error, value } = productSchema.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
+        // Vérification que la catégorie existe
+        const category = await categoryDB.findById(req.body.category);
+        if (!category) {
+            return res.status(404).json({ code: "CATEGORY_NOT_FOUND" });
+        }
+
+        // Mise à jour du produit
+        const updatedProduct = await productDB.findByIdAndUpdate(
+            id,
+            value,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedProduct) {
+            return res.status(404).json({ response: "PRODUCT_NOT_FOUND" });
+        }
+
+        return res.status(200).json({
+            response: "Product updated",
+            product: updatedProduct
+        });
+
+    } catch (err) {
+        if (err.name === 'CastError') {
+            return res.status(400).json({ response: "Invalid ID format" });
+        }
+        return res.status(500).json({ error: err.message || err });
+    }
+});
 
 module.exports = router;

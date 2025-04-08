@@ -10,6 +10,7 @@ const mainRoutes = require("./routes/index");
 const productRoutes = require("./routes/product");
 const categoryRoutes = require("./routes/category");
 const userRoutes = require("./routes/user");
+const contactRoutes = require("./routes/contact");
 
 
 const app = express();
@@ -29,7 +30,7 @@ app.use("/", mainRoutes);
 app.use("/product", productRoutes);
 app.use("/category", categoryRoutes);
 app.use("/users", userRoutes);
-
+app.use("/contact", contactRoutes);
 
 const startServer = async () => {
     app.listen(process.env.WEB_PORT, () => {

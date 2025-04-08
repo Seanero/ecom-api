@@ -5,6 +5,7 @@ const {sign, verify} = require("jsonwebtoken");
 const router = express.Router();
 
 const verifyToken = require("../middlewares/verifyToken");
+const verifyAdmin = require("../middlewares/verifyAdmin");
 
 const userDB = require("../database/models/user")
 
@@ -129,16 +130,17 @@ router.post('/edit', verifyToken, async (req, res) => {
 router.post('/changePassword', verifyToken, async (req, res) => {
     const { currentPassword, newPassword, userId } = req.body;
 
-    if (!currentPassword || !newPassword || !userId) {
+    if (!newPassword || !userId) {
         return res.status(400).json({
             code: 'INVALID_BODY',
-            message: 'Le mot de passe actuel, le nouveau mot de passe et l\'ID utilisateur sont requis'
+            message: 'Le nouveau mot de passe et l\'ID utilisateur sont requis'
         });
     }
 
     const isAdmin = req.user.role === 'admin';
     const isSelf = req.user.id.toString() === userId;
 
+    // Seuls les admins ou les utilisateurs eux-mêmes peuvent changer un mot de passe
     if (!isAdmin && !isSelf) {
         return res.status(403).json({
             code: 'FORBIDDEN',
@@ -147,17 +149,22 @@ router.post('/changePassword', verifyToken, async (req, res) => {
     }
 
     try {
-        // Récupérer l'utilisateur
         const user = await userDB.findById(userId);
 
         if (!user) {
             return res.status(404).json({ code: 'USER_NOT_FOUND' });
         }
 
-        // Pour les utilisateurs non-admin, vérifier le mot de passe actuel
-        if (!isAdmin || isSelf && isAdmin) {
-            // Utiliser bcrypt.compare pour comparer le mot de passe en clair avec le hash stocké
-            const isMatch = await bcrypt.compare(currentPassword, user.password)
+        // Si ce n’est pas un admin, ou si c’est un admin qui modifie son propre mot de passe → vérifier l’ancien mot de passe
+        if (!isAdmin || (isAdmin && isSelf)) {
+            if (!currentPassword) {
+                return res.status(400).json({
+                    code: 'CURRENT_PASSWORD_REQUIRED',
+                    message: 'Le mot de passe actuel est requis'
+                });
+            }
+
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
 
             if (!isMatch) {
                 return res.status(401).json({
@@ -172,7 +179,7 @@ router.post('/changePassword', verifyToken, async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         // Mettre à jour le mot de passe
-        const updatedUser = await userDB.findByIdAndUpdate(
+        await userDB.findByIdAndUpdate(
             userId,
             { $set: { password: hashedPassword } },
             { new: true }
@@ -346,6 +353,61 @@ router.post('/register', async (req, res) => {
 router.get("/logout", verifyToken, (req, res) => {
     res.clearCookie("token", { httpOnly: true, secure: false, sameSite: 'lax' });
     res.status(200).json({ code: "LOGOUT_SUCCESS" });
+});
+
+router.get('/getAll', verifyToken, verifyAdmin , async (req, res) => {
+    try {
+        // Récupérer tous les utilisateurs, sans inclure leur mot de passe
+        const users = await userDB.find({}, { password: 0 });
+
+        return res.status(200).json({
+            code: "SUCCESS",
+            users
+        });
+    } catch (err) {
+        console.error("Erreur lors de la récupération des utilisateurs:", err);
+        return res.status(500).json({
+            code: "SERVER_ERROR",
+            message: "Une erreur est survenue lors de la récupération des utilisateurs"
+        });
+    }
+});
+
+router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
+    const userId = req.params.id;
+
+    // Vérifier si l'utilisateur essaie de se supprimer lui-même
+    if (req.user.id.toString() === userId) {
+        return res.status(403).json({
+            code: 'FORBIDDEN',
+            message: 'Vous ne pouvez pas supprimer votre propre compte administrateur'
+        });
+    }
+
+    try {
+        const userToDelete = await userDB.findById(userId);
+
+        if (!userToDelete) {
+            return res.status(404).json({
+                code: 'USER_NOT_FOUND',
+                message: 'Utilisateur non trouvé'
+            });
+        }
+
+        // Supprimer l'utilisateur
+        await userDB.findByIdAndDelete(userId);
+
+        return res.status(200).json({
+            code: 'USER_DELETED',
+            message: 'Utilisateur supprimé avec succès'
+        });
+    } catch (err) {
+        console.error("Erreur lors de la suppression de l'utilisateur:", err);
+        return res.status(500).json({
+            code: 'SERVER_ERROR',
+            message: "Une erreur est survenue lors de la suppression de l'utilisateur"
+        });
+    }
 });
 
 module.exports = router;
